@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de Métodos Numéricos</title>
-    <!-- 1. Math.js para evaluar funciones -->
+    <!-- 1. Math.js para evaluar funciones y derivadas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
     
     <!-- 2. Tailwind CSS para la interfaz -->
@@ -31,6 +31,7 @@
             border: 1px solid #e2e8f0;
             padding: 0.75rem 1rem;
             text-align: left;
+            font-size: 0.875rem;
         }
         .results-table th {
             background-color: #f8fafc;
@@ -55,6 +56,7 @@
             margin: 0.5rem 1rem;
             background-color: white;
             border-radius: 4px;
+            font-size: 0.9rem;
         }
         .matrix-table td {
             padding: 0.5rem 0.75rem;
@@ -76,6 +78,94 @@
             font-weight: bold;
             color: #4b5563;
             margin: 0 0.5rem;
+            align-self: center;
+        }
+        
+        /* Estilos para el procedimiento de LU */
+        .lu-step {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .lu-step h4 {
+            font-weight: 600;
+            color: #1d4ed8;
+            font-size: 1.1rem;
+        }
+        .lu-step code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #e0e7ff;
+            color: #3730a3;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .lu-step .matrix-container {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+        
+        /* Estilos para Sugerencias de Gemini */
+        .gemini-suggestion {
+            background-color: #f0f5ff;
+            border: 1px solid #cce0ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .gemini-suggestion-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            color: #333;
+        }
+        .gemini-suggestion-note {
+            font-size: 0.8rem;
+            color: #555;
+            display: block;
+        }
+        .gemini-use-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .gemini-use-btn:hover {
+            background-color: #1d4ed8;
+        }
+        
+        /* Estilos para botones de símbolos */
+        .symbol-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .symbol-btn {
+            background-color: #e5e7eb;
+            color: #374151;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.9rem;
+        }
+        .symbol-btn:hover {
+            background-color: #d1d5db;
         }
     </style>
 </head>
@@ -100,26 +190,14 @@
                 <div class="bg-white p-4 rounded-lg shadow-sm">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">Métodos</h2>
                     <ul class="space-y-2">
-                        <li>
-                            <button id="btn-biseccion" onclick="showPanel('biseccion')" class="nav-btn w-full text-left">
-                                Bisección
-                            </button>
-                        </li>
-                        <li>
-                            <button id="btn-regula" onclick="showPanel('regula')" class="nav-btn w-full text-left">
-                                Falsa Posición
-                            </button>
-                        </li>
-                        <li>
-                            <button id="btn-lu" onclick="showPanel('lu')" class="nav-btn w-full text-left">
-                                Factorización LU
-                            </button>
-                        </li>
-                        <li>
-                            <button id="btn-flotante" onclick="showPanel('flotante')" class="nav-btn w-full text-left">
-                                Punto Flotante
-                            </button>
-                        </li>
+                        <li><button id="btn-biseccion" onclick="showPanel('biseccion')" class="nav-btn w-full text-left">Bisección</button></li>
+                        <li><button id="btn-regula" onclick="showPanel('regula')" class="nav-btn w-full text-left">Falsa Posición</button></li>
+                        <li><button id="btn-newton" onclick="showPanel('newton')" class="nav-btn w-full text-left">Newton-Raphson</button></li>
+                        <li><button id="btn-secante" onclick="showPanel('secante')" class="nav-btn w-full text-left">Secante</button></li>
+                        <li><button id="btn-pfijo" onclick="showPanel('pfijo')" class="nav-btn w-full text-left">Punto Fijo</button></li>
+                        <li><button id="btn-lu" onclick="showPanel('lu')" class="nav-btn w-full text-left">Factorización LU</button></li>
+                        <li><button id="btn-flotante" onclick="showPanel('flotante')" class="nav-btn w-full text-left">Punto Flotante</button></li>
+                        <li><button id="btn-base" onclick="showPanel('base')" class="nav-btn w-full text-left">Conversor de Base</button></li>
                     </ul>
                 </div>
             </nav>
@@ -127,14 +205,26 @@
             <!-- Área de Contenido Principal (Paneles) -->
             <main class="w-full md:w-3/4 lg:w-4/5 py-4">
                 
-                <!-- Panel Bisección (Oculto por defecto) -->
+                <!-- Panel Bisección -->
                 <div id="panel-biseccion" class="panel hidden">
                     <div class="bg-white p-6 rounded-lg shadow-sm">
                         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Método de Bisección</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                            <div class="md:col-span-2">
                                 <label for="b-funcion" class="block text-sm font-medium text-gray-700">Función f(x)</label>
                                 <input type="text" id="b-funcion" value="x^3 - x - 2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <div class="symbol-buttons" data-target-id="b-funcion">
+                                    <button class="symbol-btn" data-symbol="x">x</button>
+                                    <button class="symbol-btn" data-symbol="^">^</button>
+                                    <button class="symbol-btn" data-symbol="*">*</button>
+                                    <button class="symbol-btn" data-symbol="/">/</button>
+                                    <button class="symbol-btn" data-symbol="+">+</button>
+                                    <button class="symbol-btn" data-symbol="-">-</button>
+                                    <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                    <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                                    <button class="symbol-btn" data-symbol="sqrt()">sqrt()</button>
+                                    <button class="symbol-btn" data-symbol="cos()">cos()</button>
+                                </div>
                             </div>
                             <div>
                                 <label for="b-a" class="block text-sm font-medium text-gray-700">Intervalo [a]</label>
@@ -146,28 +236,40 @@
                             </div>
                             <div>
                                 <label for="b-tol" class="block text-sm font-medium text-gray-700">Tolerancia</label>
-                                <input type="number" id="b-tol" value="0.0001" step="0.0001" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <input type="text" id="b-tol" value="1e-8" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label for="b-iter" class="block text-sm font-medium text-gray-700">Max. Iteraciones</label>
                                 <input type="number" id="b-iter" value="50" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
-                        <button onclick="calcularBiseccion()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
+                        <button onclick="calcularMetodoCerrado('biseccion')" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
                             Calcular Bisección
                         </button>
                         <div id="resultado-biseccion" class="mt-6"></div>
                     </div>
                 </div>
 
-                <!-- Panel Regula Falsi (Oculto por defecto) -->
+                <!-- Panel Regula Falsi -->
                 <div id="panel-regula" class="panel hidden">
                     <div class="bg-white p-6 rounded-lg shadow-sm">
                         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Método de Falsa Posición (Regula Falsi)</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                            <div class="md:col-span-2">
                                 <label for="r-funcion" class="block text-sm font-medium text-gray-700">Función f(x)</label>
                                 <input type="text" id="r-funcion" value="x + ln(x)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <div class="symbol-buttons" data-target-id="r-funcion">
+                                    <button class="symbol-btn" data-symbol="x">x</button>
+                                    <button class="symbol-btn" data-symbol="^">^</button>
+                                    <button class="symbol-btn" data-symbol="*">*</button>
+                                    <button class="symbol-btn" data-symbol="/">/</button>
+                                    <button class="symbol-btn" data-symbol="+">+</button>
+                                    <button class="symbol-btn" data-symbol="-">-</button>
+                                    <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                    <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                                    <button class="symbol-btn" data-symbol="sqrt()">sqrt()</button>
+                                    <button class="symbol-btn" data-symbol="cos()">cos()</button>
+                                </div>
                             </div>
                             <div>
                                 <label for="r-a" class="block text-sm font-medium text-gray-700">Intervalo [a]</label>
@@ -179,21 +281,176 @@
                             </div>
                             <div>
                                 <label for="r-tol" class="block text-sm font-medium text-gray-700">Tolerancia</label>
-                                <input type="number" id="r-tol" value="0.0001" step="0.0001" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <input type="text" id="r-tol" value="1e-8" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label for="r-iter" class="block text-sm font-medium text-gray-700">Max. Iteraciones</label>
                                 <input type="number" id="r-iter" value="50" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
-                        <button onclick="calcularRegulaFalsi()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
+                        <button onclick="calcularMetodoCerrado('regula')" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
                             Calcular Falsa Posición
                         </button>
                         <div id="resultado-regula" class="mt-6"></div>
                     </div>
                 </div>
 
-                <!-- Panel LU (Oculto por defecto) -->
+                <!-- Panel Newton-Raphson -->
+                <div id="panel-newton" class="panel hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Método de Newton-Raphson</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="n-funcion" class="block text-sm font-medium text-gray-700">Función f(x)</label>
+                                <input type="text" id="n-funcion" value="exp(x) - (x+3)^2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <div class="symbol-buttons" data-target-id="n-funcion">
+                                    <button class="symbol-btn" data-symbol="x">x</button>
+                                    <button class="symbol-btn" data-symbol="^">^</button>
+                                    <button class="symbol-btn" data-symbol="*">*</button>
+                                    <button class="symbol-btn" data-symbol="/">/</button>
+                                    <button class="symbol-btn" data-symbol="+">+</button>
+                                    <button class="symbol-btn" data-symbol="-">-</button>
+                                    <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                    <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="n-derivada" class="block text-sm font-medium text-gray-700">Derivada f'(x) (Opcional)</label>
+                                <input type="text" id="n-derivada" placeholder="Dejar vacío para auto-derivar" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <div class="symbol-buttons" data-target-id="n-derivada">
+                                    <button class="symbol-btn" data-symbol="x">x</button>
+                                    <button class="symbol-btn" data-symbol="^">^</button>
+                                    <button class="symbol-btn" data-symbol="*">*</button>
+                                    <button class="symbol-btn" data-symbol="/">/</button>
+                                    <button class="symbol-btn" data-symbol="+">+</button>
+                                    <button class="symbol-btn" data-symbol="-">-</button>
+                                    <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                    <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="n-x0" class="block text-sm font-medium text-gray-700">Valor Inicial (x0)</label>
+                                <input type="number" id="n-x0" value="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="n-tol" class="block text-sm font-medium text-gray-700">Tolerancia</Epsilon></label>
+                                <input type="text" id="n-tol" value="1e-8" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="n-iter" class="block text-sm font-medium text-gray-700">Max. Iteraciones</label>
+                                <input type="number" id="n-iter" value="50" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <button onclick="calcularMetodoAbierto('newton')" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
+                            Calcular Newton-Raphson
+                        </button>
+                        <div id="resultado-newton" class="mt-6"></div>
+                    </div>
+                </div>
+
+                <!-- Panel Secante -->
+                <div id="panel-secante" class="panel hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Método de la Secante</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="s-funcion" class="block text-sm font-medium text-gray-700">Función f(x)</label>
+                                <input type="text" id="s-funcion" value="exp(x) - (x+3)^2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <div class="symbol-buttons" data-target-id="s-funcion">
+                                    <button class="symbol-btn" data-symbol="x">x</button>
+                                    <button class="symbol-btn" data-symbol="^">^</button>
+                                    <button class="symbol-btn" data-symbol="*">*</button>
+                                    <button class="symbol-btn" data-symbol="/">/</button>
+                                    <button class="symbol-btn" data-symbol="+">+</button>
+                                    <button class="symbol-btn" data-symbol="-">-</button>
+                                    <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                    <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="s-x0" class="block text-sm font-medium text-gray-700">Valor Inicial (x0)</label>
+                                <input type="number" id="s-x0" value="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="s-x1" class="block text-sm font-medium text-gray-700">Valor Inicial (x1)</label>
+                                <input type="number" id="s-x1" value="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="s-tol" class="block text-sm font-medium text-gray-700">Tolerancia</Epsilon></label>
+                                <input type="text" id="s-tol" value="1e-8" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="s-iter" class="block text-sm font-medium text-gray-700">Max. Iteraciones</label>
+                                <input type="number" id="s-iter" value="50" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <button onclick="calcularMetodoAbierto('secante')" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
+                            Calcular Secante
+                        </button>
+                        <div id="resultado-secante" class="mt-6"></div>
+                    </div>
+                </div>
+
+                <!-- Panel Punto Fijo -->
+                <div id="panel-pfijo" class="panel hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Método de Punto Fijo</h2>
+                        
+                        <!-- Ayudante de Gemini -->
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <label for="pf-fx" class="block text-sm font-medium text-gray-700">Ecuación original f(x) = 0</label>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="text" id="pf-fx" placeholder="Ej: exp(-x) - x" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <button id="pf-sugerir-btn" onclick="sugerirGxFijo()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-3 rounded-md shadow transition-all">
+                                    ✨ Sugerir g(x)
+                                </button>
+                            </div>
+                            <div class="symbol-buttons" data-target-id="pf-fx">
+                                <button class="symbol-btn" data-symbol="x">x</button>
+                                <button class="symbol-btn" data-symbol="^">^</button>
+                                <button class="symbol-btn" data-symbol="*">*</button>
+                                <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                            </div>
+                            <div id="pf-sugerencias-loading" class="text-sm text-gray-500 mt-2 hidden">Buscando sugerencias...</div>
+                            <div id="pf-sugerencias" class="mt-2 space-y-2"></div>
+                        </div>
+                        <!-- Fin Ayudante -->
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="pf-funcion" class="block text-sm font-medium text-gray-700">Función g(x)</label>
+                                <input type="text" id="pf-funcion" placeholder="Ej: exp(-x)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <div class="symbol-buttons" data-target-id="pf-funcion">
+                                    <button class="symbol-btn" data-symbol="x">x</button>
+                                    <button class="symbol-btn" data-symbol="^">^</button>
+                                    <button class="symbol-btn" data-symbol="*">*</button>
+                                    <button class="symbol-btn" data-symbol="/">/</button>
+                                    <button class="symbol-btn" data-symbol="exp()">exp()</button>
+                                    <button class="symbol-btn" data-symbol="ln()">ln()</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="pf-x0" class="block text-sm font-medium text-gray-700">Valor Inicial (x0)</label>
+                                <input type="number" id="pf-x0" value="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="pf-tol" class="block text-sm font-medium text-gray-700">Tolerancia</Epsilon></label>
+                                <input type="text" id="pf-tol" value="1e-8" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="pf-iter" class="block text-sm font-medium text-gray-700">Max. Iteraciones</label>
+                                <input type="number" id="pf-iter" value="50" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <button onclick="calcularMetodoAbierto('pfijo')" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
+                            Calcular Punto Fijo
+                        </button>
+                        <div id="resultado-pfijo" class="mt-6"></div>
+                    </div>
+                </div>
+
+                <!-- Panel LU -->
                 <div id="panel-lu" class="panel hidden">
                     <div class="bg-white p-6 rounded-lg shadow-sm">
                         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Factorización LU (con Pivoteo)</h2>
@@ -220,7 +477,7 @@
                     </div>
                 </div>
 
-                <!-- Panel Punto Flotante (Oculto por defecto) -->
+                <!-- Panel Punto Flotante -->
                 <div id="panel-flotante" class="panel hidden">
                     <div class="bg-white p-6 rounded-lg shadow-sm">
                         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Codificación Punto Flotante</h2>
@@ -239,10 +496,37 @@
                                 <input type="number" id="f-mant" value="13" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
+                        
+                        <div class="mt-4">
+                            <label for="f-exp-bin-manual" class="block text-sm font-medium text-gray-700">Exponente en Base 2 (Opcional)</label>
+                            <input type="text" id="f-exp-bin-manual" placeholder="Ej: 0001101 (reemplaza el cálculo de bias)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono">
+                            <p class="mt-1 text-xs text-gray-500">Si dejas esto vacío, se calculará el exponente con bias (estándar IEEE 754).</p>
+                        </div>
+
                         <button onclick="calcularFlotante()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
                             Calcular Punto Flotante
                         </button>
                         <div id="resultado-flotante" class="mt-6"></div>
+                    </div>
+                </div>
+                
+                <!-- Panel Conversor de Base -->
+                <div id="panel-base" class="panel hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Conversor Base 10 a Base 2</h2>
+                        <p class="text-sm text-gray-600 mb-4">Introduce un número decimal para ver su representación binaria (con parte fraccionaria).</p>
+                        <div>
+                            <label for="base-num" class="block text-sm font-medium text-gray-700">Número Decimal (Base 10)</label>
+                            <input type="text" id="base-num" value="17.35" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="base-prec" class="block text-sm font-medium text-gray-700 mt-4">Precisión Fraccionaria (bits)</label>
+                            <input type="number" id="base-prec" value="20" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <button onclick="convertirBase()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition-all">
+                            Convertir a Base 2
+                        </button>
+                        <div id="resultado-base" class="mt-6"></div>
                     </div>
                 </div>
 
@@ -255,7 +539,7 @@
     <!-- ================================================== -->
     <script>
         // --- Lógica del Menú de Navegación ---
-        const panels = ['biseccion', 'regula', 'lu', 'flotante'];
+        const panels = ['biseccion', 'regula', 'newton', 'secante', 'pfijo', 'lu', 'flotante', 'base'];
         const activeBtnClass = 'bg-blue-600 text-white shadow-md';
         const inactiveBtnClass = 'bg-gray-100 text-gray-700 hover:bg-gray-200';
 
@@ -281,6 +565,34 @@
             });
         }
         
+        // --- Lógica de Botones de Símbolos ---
+        function setupSymbolButtons() {
+            document.querySelectorAll('.symbol-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.closest('.symbol-buttons').dataset.targetId;
+                    const targetInput = document.getElementById(targetId);
+                    if (!targetInput) return;
+
+                    let symbol = button.dataset.symbol;
+                    let cursorPos = targetInput.selectionStart;
+                    let text = targetInput.value;
+
+                    // Lógica para símbolos con paréntesis
+                    let selectionOffset = 0;
+                    if (symbol.endsWith('()')) {
+                        symbol = symbol.substring(0, symbol.length - 2) + "()";
+                        selectionOffset = -1; // Pone el cursor dentro de ()
+                    }
+
+                    targetInput.value = text.substring(0, cursorPos) + symbol + text.substring(targetInput.selectionEnd);
+                    
+                    const newCursorPos = cursorPos + symbol.length + selectionOffset;
+                    targetInput.focus();
+                    targetInput.setSelectionRange(newCursorPos, newCursorPos);
+                });
+            });
+        }
+        
         // --- Inicialización al Cargar la Página ---
         document.addEventListener('DOMContentLoaded', () => {
             // 1. Aplicar estilos iniciales a los botones
@@ -290,7 +602,10 @@
                 }
             });
             
-            // 2. Mostrar el panel por defecto (Bisección)
+            // 2. Configurar los botones de símbolos
+            setupSymbolButtons();
+            
+            // 3. Mostrar el panel por defecto (Bisección)
             showPanel('biseccion');
         });
 
@@ -309,9 +624,38 @@
             }
         }
 
+        // --- Funciones de Evaluación (compila f(x) y g(x)) ---
+        function compilarFuncion(funcStr, varName = 'x') {
+            try {
+                const node = math.parse(funcStr);
+                const comp = node.compile();
+                const scope = { e: math.e };
+                return (val) => comp.evaluate({ ...scope, [varName]: val, ln: math.log, log10: math.log10, exp: math.exp, sin: math.sin, cos: math.cos, tan: math.tan, sqrt: math.sqrt });
+            } catch (e) {
+                throw new Error(`Error en la sintaxis de la función: ${e.message}`);
+            }
+        }
+
+        function compilarDerivada(funcStr, varName = 'x') {
+            try {
+                // Primero, intenta derivar automáticamente
+                const node = math.parse(funcStr);
+                const derivNode = math.derivative(node, varName);
+                const comp = derivNode.compile();
+                const scope = { e: math.e };
+                return {
+                    eval: (val) => comp.evaluate({ ...scope, [varName]: val, ln: math.log, log10: math.log10, exp: math.exp, sin: math.sin, cos: math.cos, tan: math.tan, sqrt: math.sqrt }),
+                    str: derivNode.toString()
+                };
+            } catch (e) {
+                // Si falla (ej. función no soportada), lanza un error
+                throw new Error(`No se pudo auto-derivar f(x). Introdúcela manualmente. Error: ${e.message}`);
+            }
+        }
+
 
         /**
-         * 1. CEREBRO PARA BISECCIÓN Y REGULA FALSI
+         * 1. CEREBRO PARA MÉTODOS CERRADOS (Bisección y Regula Falsi)
          */
         function calcularMetodoCerrado(metodo) {
             const id_pref = (metodo === 'biseccion') ? 'b' : 'r';
@@ -324,27 +668,18 @@
                 const tol = parseFloat(document.getElementById(`${id_pref}-tol`).value);
                 const maxIter = parseInt(document.getElementById(`${id_pref}-iter`).value);
 
-                // Compilar la función usando math.js
-                let node, comp;
-                try {
-                    node = math.parse(funcStr);
-                    comp = node.compile();
-                } catch (e) {
-                    throw new Error(`Error en la sintaxis de la función: ${e.message}`);
-                }
-
-                // Scope para evaluación, permitiendo ln, exp, etc.
-                const scope = { e: math.e };
-                const evaluar = (x) => comp.evaluate({ ...scope, x: x, ln: math.log, log10: math.log10, exp: math.exp, sin: math.sin, cos: math.cos, tan: math.tan, sqrt: math.sqrt });
+                const evaluar = compilarFuncion(funcStr);
 
                 let fa = evaluar(a);
                 let fb = evaluar(b);
 
+                if (isNaN(fa) || isNaN(fb)) {
+                     throw new Error(`Evaluación fallida. Revisa la función y los intervalos. f(${a}) = ${fa}, f(${b}) = ${fb}`);
+                }
                 if (fa * fb > 0) {
                     throw new Error(`Error (Teorema de Bolzano): f(a) y f(b) tienen el mismo signo. f(${a})=${fa.toFixed(5)}, f(${b})=${fb.toFixed(5)}`);
                 }
                 
-                // Formato para los signos como en las fotos
                 const signClass = (val) => val > 0 ? 'sign-pos' : 'sign-neg';
                 const signChar = (val) => val > 0 ? '(+)' : '(-)';
 
@@ -361,40 +696,39 @@
                                 <th>f(a)</th>
                                 <th>f(b)</th>
                                 <th>f(xn)</th>
-                                <th>Error</th>
+                                <th>Error |a-b|</th>
                             </tr>
                         </thead>
                         <tbody>`;
 
                 let xn, fxn;
                 let error = Infinity;
-                let xn_prev = 0;
-
+                
                 for (let n = 1; n <= maxIter; n++) {
+                    error = Math.abs(b - a);
+                    
                     if (metodo === 'biseccion') {
                         xn = (a + b) / 2.0;
                     } else { // Regula Falsi
-                        if (fb - fa === 0) throw new Error("División por cero en Regula Falsi (f(b) - f(a) = 0).");
+                        if (fb - fa === 0) break; // Evitar división por cero
                         xn = (a * fb - b * fa) / (fb - fa);
                     }
 
                     fxn = evaluar(xn);
-                    error = Math.abs(xn - xn_prev);
-                    xn_prev = xn;
-                    
+
                     tablaHtml += `
                         <tr>
                             <td>${n}</td>
-                            <td>${a.toFixed(7)}</td>
-                            <td>${b.toFixed(7)}</td>
-                            <td><b>${xn.toFixed(7)}</b></td>
+                            <td>${a.toFixed(10)}</td>
+                            <td>${b.toFixed(10)}</td>
+                            <td><b>${xn.toFixed(10)}</b></td>
                             <td class="${signClass(fa)}">${signChar(fa)}</td>
                             <td class="${signClass(fb)}">${signChar(fb)}</td>
                             <td class="${signClass(fxn)}">${signChar(fxn)}</td>
                             <td>${error.toExponential(3)}</td>
                         </tr>`;
 
-                    if (Math.abs(fxn) < tol || (error < tol && n > 1)) {
+                    if (Math.abs(fxn) < tol || error < tol) {
                         break; // Criterio de parada
                     }
 
@@ -411,7 +745,7 @@
                 tablaHtml += `</tbody></table></div>`;
                 const resultadoFinal = `<div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                             <h4 class="text-lg font-bold text-blue-800">Resultado Final</h4>
-                                            <p class="text-xl">Raíz (xn) ≈ <b class="font-mono">${xn.toFixed(8)}</b></p>
+                                            <p class="text-xl">Raíz (xn) ≈ <b class="font-mono">${xn.toFixed(10)}</b></p>
                                             <p>f(xn) ≈ ${fxn.toExponential(4)}</p>
                                         </div>`;
 
@@ -421,21 +755,188 @@
                 mostrarError(resultadoId, e.message);
             }
         }
+        
+        
+        /**
+         * 2. CEREBRO PARA MÉTODOS ABIERTOS (Newton, Secante, Punto Fijo)
+         */
+        async function calcularMetodoAbierto(metodo) {
+            const id_pref = (metodo === 'pfijo') ? 'pf' : metodo.substring(0, 1); // n, s, pf
+            const resultadoId = `resultado-${metodo}`;
 
-        function calcularBiseccion() {
-            calcularMetodoCerrado('biseccion');
-        }
+            try {
+                let funcStr, x0, x1, tol, maxIter, evaluar, evaluar_g;
+                let tablaHtml = "", xn, fxn, error = Infinity;
 
-        function calcularRegulaFalsi() {
-            calcularMetodoCerrado('regula');
+                funcStr = document.getElementById(`${id_pref}-funcion`).value;
+                x0 = parseFloat(document.getElementById(`${id_pref}-x0`).value);
+                tol = parseFloat(document.getElementById(`${id_pref}-tol`).value);
+                maxIter = parseInt(document.getElementById(`${id_pref}-iter`).value);
+
+                if (metodo === 'secante') {
+                    x1 = parseFloat(document.getElementById(`${id_pref}-x1`).value);
+                }
+
+                // Compilar la función f(x) o g(x)
+                if (metodo === 'pfijo') {
+                    evaluar_g = compilarFuncion(funcStr, 'x'); // g(x)
+                } else {
+                    evaluar = compilarFuncion(funcStr, 'x'); // f(x)
+                }
+
+                // --- Lógica de NEWTON-RAPHSON ---
+                if (metodo === 'newton') {
+                    let derivStr = document.getElementById('n-derivada').value.trim();
+                    let evaluar_deriv;
+                    let derivHtml = "";
+
+                    if (derivStr === "") {
+                        // Derivada automática
+                        const deriv = compilarDerivada(funcStr, 'x');
+                        evaluar_deriv = deriv.eval;
+                        derivHtml = `<div class="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                            <b>Derivada automática:</b> f'(x) = ${deriv.str}
+                            </div><br>`;
+                    } else {
+                        // Derivada manual
+                        evaluar_deriv = compilarFuncion(derivStr, 'x');
+                        derivHtml = `<div class="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm">
+                            <b>Usando derivada manual:</b> f'(x) = ${derivStr}
+                            </div><br>`;
+                    }
+                    
+                    tablaHtml = `
+                        ${derivHtml}
+                        <h3 class="text-xl font-semibold mb-4">Tabla de Iteraciones</h3>
+                        <div class="overflow-x-auto">
+                        <table class="results-table">
+                            <thead><tr><th>n</th><th>xn</th><th>f(xn)</th><th>f'(xn)</th><th>Error |xn - xn-1|</th></tr></thead>
+                            <tbody>`;
+                    
+                    let x_prev = x0;
+                    for (let n = 0; n <= maxIter; n++) {
+                        fxn = evaluar(x_prev);
+                        let fpxn = evaluar_deriv(x_prev);
+                        
+                        if (Math.abs(fpxn) < 1e-15) throw new Error("Derivada es cero. El método falla.");
+                        
+                        xn = x_prev - (fxn / fpxn);
+                        error = Math.abs(xn - x_prev);
+
+                        tablaHtml += `
+                            <tr>
+                                <td>${n}</td>
+                                <td><b>${x_prev.toFixed(10)}</b></td>
+                                <td>${fxn.toExponential(3)}</td>
+                                <td>${fpxn.toFixed(10)}</td>
+                                <td>${(n > 0) ? error.toExponential(3) : '---'}</td>
+                            </tr>`;
+                        
+                        if (error < tol && n > 0) {
+                            x_prev = xn; // Guardar el último valor
+                            break;
+                        }
+                        x_prev = xn;
+                    }
+                    xn = x_prev; // El resultado final
+                }
+                
+                // --- Lógica de SECANTE ---
+                if (metodo === 'secante') {
+                    tablaHtml = `
+                        <h3 class="text-xl font-semibold mb-4">Tabla de Iteraciones</h3>
+                        <div class="overflow-x-auto">
+                        <table class="results-table">
+                            <thead><tr><th>n</th><th>xn-1</th><th>xn</th><th>f(xn-1)</th><th>f(xn)</th><th>xn+1</th><th>Error |xn+1 - xn|</th></tr></thead>
+                            <tbody>`;
+                    
+                    let x_prev = x0;
+                    let x_curr = x1;
+                    let fx_prev = evaluar(x_prev);
+                    let fx_curr = evaluar(x_curr);
+
+                    for (let n = 0; n <= maxIter; n++) {
+                        if (Math.abs(fx_curr - fx_prev) < 1e-15) throw new Error("División por cero. El método falla.");
+
+                        xn = x_curr - (fx_curr * (x_curr - x_prev)) / (fx_curr - fx_prev);
+                        error = Math.abs(xn - x_curr);
+
+                        tablaHtml += `
+                            <tr>
+                                <td>${n}</td>
+                                <td>${x_prev.toFixed(10)}</td>
+                                <td><b>${x_curr.toFixed(10)}</b></td>
+                                <td>${fx_prev.toExponential(3)}</td>
+                                <td>${fx_curr.toExponential(3)}</td>
+                                <td>${xn.toFixed(10)}</td>
+                                <td>${error.toExponential(3)}</td>
+                            </tr>`;
+
+                        if (error < tol) break;
+                        
+                        x_prev = x_curr;
+                        fx_prev = fx_curr;
+                        x_curr = xn;
+                        fx_curr = evaluar(x_curr);
+                    }
+                }
+                
+                // --- Lógica de PUNTO FIJO ---
+                if (metodo === 'pfijo') {
+                    tablaHtml = `
+                        <h3 class="text-xl font-semibold mb-4">Tabla de Iteraciones</h3>
+                        <div class="overflow-x-auto">
+                        <table class="results-table">
+                            <thead><tr><th>n</th><th>xn</th><th>g(xn) = xn+1</th><th>Error |xn+1 - xn|</th></tr></thead>
+                            <tbody>`;
+                    
+                    let x_prev = x0;
+                    for (let n = 0; n <= maxIter; n++) {
+                        xn = evaluar_g(x_prev); // xn = g(x_prev)
+                        error = Math.abs(xn - x_prev);
+
+                        tablaHtml += `
+                            <tr>
+                                <td>${n}</td>
+                                <td>${x_prev.toFixed(10)}</td>
+                                <td><b>${xn.toFixed(10)}</b></td>
+                                <td>${error.toExponential(3)}</td>
+                            </tr>`;
+                        
+                        if (error < tol) {
+                            x_prev = xn;
+                            break;
+                        }
+                        x_prev = xn;
+                        
+                        if (isNaN(xn) || !isFinite(xn)) {
+                            throw new Error("El método divergió o resultó en un valor inválido.");
+                        }
+                    }
+                    xn = x_prev;
+                }
+
+                // --- Mostrar Resultados ---
+                tablaHtml += `</tbody></table></div>`;
+                const resultadoFinal = `<div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <h4 class="text-lg font-bold text-blue-800">Resultado Final</h4>
+                                            <p class="text-xl">Raíz (xn) ≈ <b class="font-mono">${xn.toFixed(10)}</b></p>
+                                        </div>`;
+                mostrarResultado(resultadoId, tablaHtml);
+
+            } catch (e) {
+                mostrarError(resultadoId, e.message);
+            }
         }
 
 
         /**
-         * 2. CEREBRO PARA FACTORIZACIÓN LU (CON PIVOTEO PARCIAL)
+         * 3. CEREBRO PARA FACTORIZACIÓN LU (CON PIVOTEO Y PASO A PASO VISUAL)
          */
         function calcularLU() {
             const resultadoId = 'resultado-lu';
+            let html = ""; // Aquí acumularemos la salida
+            
             try {
                 // Parsear Matriz A
                 const strA = document.getElementById('lu-a').value.trim().split('\n');
@@ -477,40 +978,85 @@
                 for (let i = 0; i < n; i++) {
                     U[i] = [...A[i]];
                 }
+                
+                // Clonar A para mostrar la matriz "Aumentada" estilo Gauss
+                let Aug = Array(n).fill(0).map((_, i) => [...A[i]]);
 
                 function swapRows(matrix, i, k) {
                     [matrix[i], matrix[k]] = [matrix[k], matrix[i]];
                 }
+                
+                html += `<h3 class="text-xl font-semibold mb-4">Paso 1: Factorización PA = LU (Procedimiento)</h3>`;
+                html += `<div class="lu-step"><h4>Estado Inicial (Matriz A)</h4>
+                         <div class="matrix-container">${matrixToHtml(Aug)}</div></div>`;
 
                 for (let k = 0; k < n; k++) {
-                    // Pivoteo Parcial: Encontrar fila con max valor en col k
+                    html += `<div class="lu-step"><h4>Iteración k = ${k}</h4>`;
+                    
+                    // Pivoteo Parcial
                     let maxVal = 0;
                     let maxIdx = k;
                     for (let i = k; i < n; i++) {
-                        if (Math.abs(U[i][k]) > maxVal) {
-                            maxVal = Math.abs(U[i][k]);
+                        if (Math.abs(Aug[i][k]) > maxVal) {
+                            maxVal = Math.abs(Aug[i][k]);
                             maxIdx = i;
                         }
                     }
 
                     if (maxVal === 0) throw new Error("Matriz singular. No se puede continuar (pivote es cero).");
 
-                    // Intercambiar filas en U, P, y L (la parte ya calculada)
-                    swapRows(U, k, maxIdx);
-                    swapRows(P, k, maxIdx);
-                    swapRows(L, k, maxIdx); 
+                    if (maxIdx !== k) {
+                        html += `<p><b>Pivoteo:</b> Valor máximo ${decimalToFraction(maxVal)} en Fila ${maxIdx}. Intercambiando Fila ${k} <-> Fila ${maxIdx}.</p>`;
+                        swapRows(Aug, k, maxIdx);
+                        swapRows(P, k, maxIdx);
+                        swapRows(L, k, maxIdx); // Intercambiar multiplicadores ya calculados
+                        html += `<div class="matrix-container">${matrixToHtml(Aug)}</div>`;
+                    } else {
+                        html += `<p><b>Pivote:</b> ${decimalToFraction(Aug[k][k])} (en Fila ${k}). No se requiere intercambio.</p>`;
+                    }
                     
-                    L[k][k] = 1; // Diagonal de L es 1 (Doolittle)
+                    // Almacenar fila k de U y diagonal de L
+                    L[k][k] = 1;
+                    for(let j=k; j<n; j++) {
+                        U[k][j] = Aug[k][j];
+                    }
 
-                    // Calcular L y U para la columna k
+                    // Calcular multiplicadores y aplicar eliminación
+                    html += `<p><b>Operaciones de Fila:</b></p><ul class="list-disc list-inside ml-4">`;
                     for (let i = k + 1; i < n; i++) {
-                        L[i][k] = U[i][k] / U[k][k];
+                        let m = Aug[i][k] / Aug[k][k];
+                        L[i][k] = m; // Guardar multiplicador en L
+                        
+                        html += `<li>Multiplicador <code>L[${i},${k}]</code> = ${decimalToFraction(Aug[i][k])} / ${decimalToFraction(Aug[k][k])} = <b>${decimalToFraction(m)}</b></li>`;
+                        html += `<li>Operación: <code>F${i} = F${i} - (${decimalToFraction(m)}) * F${k}</code></li>`;
+                        
                         for (let j = k; j < n; j++) {
-                            U[i][j] -= L[i][k] * U[k][j];
+                            Aug[i][j] -= m * Aug[k][j];
                         }
+                    }
+                    html += `</ul>`;
+                    if (k < n - 1) {
+                         html += `<p class="mt-2"><b>Matriz resultante (k=${k}):</b></p><div class="matrix-container">${matrixToHtml(Aug)}</div>`;
+                    } else {
+                         // Mostrar la U final
+                         html += `<p class="mt-2"><b>Matriz final (U):</b></p><div class="matrix-container">${matrixToHtml(Aug)}</div>`;
+                    }
+                    html += `</div>`;
+                }
+                
+                // Rellenar U con los valores de Aug (la matriz triangular superior final)
+                for(let i=0; i<n; i++) {
+                    for(let j=i; j<n; j++) {
+                        U[i][j] = Aug[i][j];
                     }
                 }
                 
+                html += `<div class="lu-step"><h4>Matrices Finales L y U</h4>
+                         <p>La Matriz U es la matriz triangular superior resultante. La Matriz L se forma con los multiplicadores.</p>
+                         <div class="matrix-container">
+                           <b>L =</b> ${matrixToHtml(L)} <span class="matrix-op">×</span> <b>U =</b> ${matrixToHtml(U)}
+                         </div></div>`;
+
                 // --- FIN LÓGICA LU ---
 
                 // Aplicar la permutación P al vector b
@@ -521,43 +1067,61 @@
 
                 // Paso 2: Resolver Ly = Pb (Sustitución hacia adelante)
                 let y = Array(n).fill(0);
+                html += `<h3 class="text-xl font-semibold mt-8 mb-4">Paso 2: Resolver Ly = Pb</h3>`;
+                html += `<div class="lu-step">
+                            <div class="matrix-container">
+                                ${matrixToHtml(L)} <span class="matrix-op">×</span> ${matrixToHtml(Array(n).fill(0).map((_,i) => 'y'+i), true)}
+                                <span class="matrix-op">=</span> ${matrixToHtml(Pb, true)}
+                            </div>
+                            <h4 class="mt-4">Sustitución hacia adelante:</h4>
+                            <ul class="list-none ml-4 space-y-2 font-mono">`;
+                
                 for (let i = 0; i < n; i++) {
                     let sum = 0;
-                    for (let j = 0; j < i; j++) sum += L[i][j] * y[j];
+                    let ecuacion = `y${i} = ${decimalToFraction(Pb[i])}`;
+                    for (let j = 0; j < i; j++) {
+                        sum += L[i][j] * y[j];
+                        ecuacion += ` - (${decimalToFraction(L[i][j])} * ${decimalToFraction(y[j])})`;
+                    }
                     y[i] = Pb[i] - sum;
+                    ecuacion += ` = <b>${decimalToFraction(y[i])}</b>`;
+                    html += `<li>${ecuacion}</li>`;
                 }
+                html += `</ul></div>`;
+
 
                 // Paso 3: Resolver Ux = y (Sustitución hacia atrás)
                 let x = Array(n).fill(0);
+                html += `<h3 class="text-xl font-semibold mt-8 mb-4">Paso 3: Resolver Ux = y</h3>`;
+                html += `<div class="lu-step">
+                            <div class="matrix-container">
+                                ${matrixToHtml(U)} <span class="matrix-op">×</span> ${matrixToHtml(Array(n).fill(0).map((_,i) => 'x'+i), true)}
+                                <span class="matrix-op">=</span> ${matrixToHtml(y, true)}
+                            </div>
+                            <h4 class="mt-4">Sustitución hacia atrás:</h4>
+                            <ul class="list-none ml-4 space-y-2 font-mono">`;
+
                 for (let i = n - 1; i >= 0; i--) {
                     let sum = 0;
-                    for (let j = i + 1; j < n; j++) sum += U[i][j] * x[j];
+                    let ecuacion = `x${i} = (${decimalToFraction(y[i])}`;
+                    for (let j = i + 1; j < n; j++) {
+                        sum += U[i][j] * x[j];
+                        ecuacion += ` - (${decimalToFraction(U[i][j])} * ${decimalToFraction(x[j])})`;
+                    }
                     if (U[i][i] === 0) throw new Error("División por cero en sustitución hacia atrás. Matriz singular.");
                     x[i] = (y[i] - sum) / U[i][i];
+                    ecuacion += `) / ${decimalToFraction(U[i][i])} = <b>${decimalToFraction(x[i])}</b>`;
+                    html += `<li>${ecuacion}</li>`;
                 }
-
-                // Generar HTML de salida
-                let html = `
-                    <h3 class="text-xl font-semibold mb-4">Paso 1: Factorización PA = LU</h3>
-                    <p class="mb-4 text-sm text-gray-600">Usando Pivoteo Parcial. (P es la permutación de filas de A)</p>
-                    <div class="flex items-center justify-center flex-wrap">
-                        ${matrixToHtml(L)} <span class="matrix-op">×</span> ${matrixToHtml(U)}
-                    </div>
-                    
-                    <h3 class="text-xl font-semibold mt-8 mb-4">Paso 2: Resolver Ly = Pb</h3>
-                    <div class="flex items-center justify-center flex-wrap">
-                        ${matrixToHtml(L)} <span class="matrix-op">×</span> ${matrixToHtml(y, true)}
-                        <span class="matrix-op">=</span> ${matrixToHtml(Pb, true)}
-                        <span class="matrix-op">→</span> <b class="text-lg">y =</b> ${matrixToHtml(y, true)}
-                    </div>
-                    
-                    <h3 class="text-xl font-semibold mt-8 mb-4">Paso 3: Resolver Ux = y</h3>
-                    <div class="flex items-center justify-center flex-wrap">
-                        ${matrixToHtml(U)} <span class="matrix-op">×</span> ${matrixToHtml(x, true)}
-                        <span class="matrix-op">=</span> ${matrixToHtml(y, true)}
-                        <span class="matrix-op">→</span> <b class="text-lg">x =</b> ${matrixToHtml(x, true)}
-                    </div>
-                `;
+                
+                html += `</ul></div>`;
+                
+                html += `<div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <h4 class="text-lg font-bold text-blue-800">Resultado Final</h4>
+                            <div class="matrix-container justify-start">
+                                <b class="text-xl">x =</b> ${matrixToHtml(x, true)}
+                            </div>
+                         </div>`;
                 
                 mostrarResultado(resultadoId, html);
 
@@ -567,14 +1131,291 @@
         }
         
         /**
-         * Helper para mostrar matrices (con conversión a fracción)
+         * 4. CEREBRO PARA PUNTO FLOTANTE
+         */
+        function calcularFlotante() {
+            const resultadoId = 'resultado-flotante';
+            try {
+                const num = parseFloat(document.getElementById('f-num').value);
+                const bits_exp = parseInt(document.getElementById('f-exp').value);
+                const bits_mant = parseInt(document.getElementById('f-mant').value);
+                const exp_bin_manual = document.getElementById('f-exp-bin-manual').value.trim();
+
+                if (isNaN(num) || isNaN(bits_exp) || isNaN(bits_mant) || bits_exp <= 0 || bits_mant <= 0) {
+                    throw new Error("Valores inválidos. Asegúrate de que todos los campos sean números positivos.");
+                }
+
+                // 1. Signo
+                const signo = (num < 0 || Object.is(num, -0)) ? 1 : 0;
+                const signo_str = (signo === 1) ? "-" : "+";
+                const num_abs = Math.abs(num);
+
+                // 2. Partes entera y fraccionaria
+                let parte_entera = Math.floor(num_abs);
+                let parte_frac = num_abs - parte_entera;
+                let bin_entero = parte_entera.toString(2);
+                
+                let bin_frac = "";
+                let temp_frac = parte_frac;
+                for (let i = 0; i < bits_mant + 20; i++) { // +20 bits para redondeo
+                    temp_frac *= 2;
+                    if (temp_frac >= 1) {
+                        bin_frac += "1";
+                        temp_frac -= 1;
+                    } else {
+                        bin_frac += "0";
+                    }
+                    if (temp_frac === 0) break;
+                }
+
+                let html = `<div class="space-y-4">
+                            <p><b>Número:</b> ${num}</p>
+                            <p><b>1. Binario Puro:</b> ${signo_str}${bin_entero}.${bin_frac}...</p>`;
+
+                // 3. Normalización (Forma 1.xxxxx * 2^E)
+                let exponente_real = 0;
+                let mantisa_raw = "";
+
+                if (num_abs === 0) {
+                    exponente_real = -Infinity;
+                    mantisa_raw = "0".repeat(bits_mant + 20);
+                } else if (parte_entera > 0) {
+                    exponente_real = bin_entero.length - 1;
+                    mantisa_raw = bin_entero.substring(1) + bin_frac;
+                } else { // num es 0.xxxx
+                    let first_one = bin_frac.indexOf('1');
+                    if (first_one === -1) { 
+                        exponente_real = -Infinity;
+                        mantisa_raw = "0".repeat(bits_mant + 20);
+                    } else {
+                        exponente_real = -(first_one + 1);
+                        mantisa_raw = bin_frac.substring(first_one + 1);
+                    }
+                }
+                
+                html += `<p><b>2. Normalizado:</b> ${signo_str}1.${mantisa_raw.substring(0, 30)}... x 2^(${exponente_real})</p>`;
+
+                // 4. Lógica de Exponente (Manual o con Bias)
+                let exp_bin;
+                let exp_guardado;
+                const bias = (2**(bits_exp - 1)) - 1;
+
+                if (exp_bin_manual !== "") {
+                    // 4.A. El usuario proveyó el exponente manualmente
+                    exp_bin = exp_bin_manual.padStart(bits_exp, '0');
+                    if (exp_bin.length > bits_exp) {
+                        exp_bin = exp_bin.substring(exp_bin.length - bits_exp); // Truncar si es muy largo
+                    }
+                    if (!/^[01]+$/.test(exp_bin)) {
+                        throw new Error("El exponente manual solo puede contener ceros y unos.");
+                    }
+                    exp_guardado = parseInt(exp_bin, 2);
+                    html += `<p><b>3. Exponente Manual:</b> Usando valor manual <b>${exp_bin}</b> (Decimal: ${exp_guardado})</p>`;
+
+                } else {
+                    // 4.B. Calcular el exponente con bias (estándar)
+                    exp_guardado = exponente_real + bias;
+                    if (num_abs === 0) exp_guardado = 0; // Cero
+                    else if (exponente_real < 1 - bias) exp_guardado = 0; // Underflow (denormalizado)
+                    else if (exponente_real > bias) exp_guardado = (2**bits_exp) - 1; // Overflow (Infinito)
+                    
+                    exp_bin = exp_guardado.toString(2).padStart(bits_exp, '0');
+                    html += `<p><b>3. Exponente Guardado (con bias ${bias}):</b> ${exponente_real} + ${bias} = ${exp_guardado} ➜ <b>${exp_bin}</b></p>`;
+                }
+
+                // 5. Mantisa (con truncado simple)
+                let mantisa_final = mantisa_raw.substring(0, bits_mant).padEnd(bits_mant, '0');
+                
+                html += `<p><b>4. Mantisa Guardada:</b> ${mantisa_final}</p>`;
+
+                // 6. Resultado Final (Las Cajitas!)
+                html += `
+                    <h3 class="text-xl font-semibold pt-4">Representación Final (Como en la foto)</h3>
+                    <div class="flex flex-wrap text-center font-bold text-lg">
+                        <div class="flex flex-col p-2">
+                            <span class="text-sm font-medium">Signo (1)</span>
+                            <span class="p-4 bg-yellow-200 text-yellow-800 border border-yellow-400 rounded-l-md">${signo}</span>
+                        </div>
+                        <div class="flex flex-col p-2">
+                            <span class="text-sm font-medium">Exponente (${bits_exp})</span>
+                            <span class="p-4 bg-green-200 text-green-800 border-t border-b border-green-400">${exp_bin}</span>
+                        </div>
+                        <div class="flex flex-col p-2">
+                            <span class="text-sm font-medium">Mantisa (${bits_mant})</span>
+                            <span class="p-4 bg-blue-200 text-blue-800 border border-blue-400 rounded-r-md">${mantisa_final}</span>
+                        </div>
+                    </div>
+                </div>`;
+                
+                mostrarResultado(resultadoId, html);
+
+            } catch (e) {
+                mostrarError(resultadoId, e.message);
+            }
+        }
+        
+        /**
+         * 5. CEREBRO PARA CONVERSOR DE BASE
+         */
+        function convertirBase() {
+            const resultadoId = 'resultado-base';
+            try {
+                const numStr = document.getElementById('base-num').value;
+                const precision = parseInt(document.getElementById('base-prec').value);
+                const num = parseFloat(numStr);
+
+                if (isNaN(num)) throw new Error("Número decimal inválido.");
+                if (isNaN(precision) || precision <= 0) throw new Error("Precisión inválida.");
+
+                const signo_str = num < 0 ? "-" : "";
+                const num_abs = Math.abs(num);
+
+                let parte_entera = Math.floor(num_abs);
+                let parte_frac = num_abs - parte_entera;
+                
+                let bin_entero = parte_entera.toString(2);
+                if (bin_entero === "") bin_entero = "0";
+                
+                let bin_frac = "";
+                let temp_frac = parte_frac;
+                let procedimiento_frac = `<h4 class="text-md font-semibold mt-4 mb-2">Procedimiento (Parte Fraccionaria):</h4>
+                                          <ul class="list-decimal list-inside text-sm font-mono space-y-1">`;
+                
+                for (let i = 0; i < precision; i++) {
+                    if (temp_frac === 0) break;
+                    let operacion = `${decimalToFraction(temp_frac)} * 2 = `;
+                    temp_frac *= 2;
+                    if (temp_frac >= 1) {
+                        bin_frac += "1";
+                        operacion += `${decimalToFraction(temp_frac)} ➜ <b>1</b>`;
+                        temp_frac -= 1;
+                    } else {
+                        bin_frac += "0";
+                        operacion += `${decimalToFraction(temp_frac)} ➜ <b>0</b>`;
+                    }
+                    procedimiento_frac += `<li>${operacion}</li>`;
+                }
+                procedimiento_frac += `</ul>`;
+                
+                if (bin_frac === "") bin_frac = "0";
+                
+                let html = `<div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <h4 class="text-lg font-bold text-blue-800">Resultado en Base 2</h4>
+                                <p class="text-sm text-gray-700">Parte Entera: ${bin_entero}</p>
+                                <p class="text-sm text-gray-700">Parte Fraccionaria: ${bin_frac}</p>
+                                <p class="text-xl mt-2"><b>${signo_str}${bin_entero}.${bin_frac}</b></p>
+                            </div>
+                            ${parte_frac > 0 ? procedimiento_frac : ''}`;
+                
+                mostrarResultado(resultadoId, html);
+                
+            } catch (e) {
+                mostrarError(resultadoId, e.message);
+            }
+        }
+        
+        /**
+         * 6. CEREBRO PARA AYUDANTE GEMINI (Punto Fijo)
+         */
+        async function sugerirGxFijo() {
+            const fxStr = document.getElementById('pf-fx').value;
+            const loadingDiv = document.getElementById('pf-sugerencias-loading');
+            const sugerenciasDiv = document.getElementById('pf-sugerencias');
+            const boton = document.getElementById('pf-sugerir-btn');
+            
+            if (!fxStr) {
+                mostrarError('resultado-pfijo', 'Por favor, introduce una función f(x) primero.');
+                return;
+            }
+            
+            loadingDiv.classList.remove('hidden');
+            sugerenciasDiv.innerHTML = "";
+            boton.disabled = true;
+
+            const apiKey = ""; // API Key se inyecta en el entorno
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const systemPrompt = `Eres un tutor de matemáticas experto en métodos numéricos. El usuario te dará una ecuación f(x) = 0. Tu tarea es encontrar 3 posibles despejes para g(x) tal que x = g(x), para usarse en el método de punto fijo. Debes devolver SÓLO un objeto JSON con el formato: { "sugerencias": [ { "gx": "expresion_gx", "nota": "breve nota de convergencia" }, ... ] }`;
+            const userQuery = `f(x) = ${fxStr}`;
+
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                    }
+                };
+
+                // Añadir reintento simple
+                let response;
+                try {
+                     response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (fetchError) {
+                    // Reintento en caso de fallo de red
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                     response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Error de API: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) {
+                    throw new Error("La API de Gemini no devolvió una respuesta válida.");
+                }
+
+                const data = JSON.parse(text);
+
+                if (data.sugerencias && data.sugerencias.length > 0) {
+                    data.sugerencias.forEach(sug => {
+                        const sugDiv = document.createElement('div');
+                        sugDiv.className = 'gemini-suggestion';
+                        sugDiv.innerHTML = `
+                            <div>
+                                <span class="gemini-suggestion-text">g(x) = ${sug.gx}</span>
+                                <span class="gemini-suggestion-note">${sug.nota}</span>
+                            </div>
+                            <button class="gemini-use-btn">Usar</button>
+                        `;
+                        sugDiv.querySelector('button').onclick = () => {
+                            document.getElementById('pf-funcion').value = sug.gx;
+                        };
+                        sugerenciasDiv.appendChild(sugDiv);
+                    });
+                } else {
+                    throw new Error("No se pudieron generar sugerencias.");
+                }
+
+            } catch (e) {
+                sugerenciasDiv.innerHTML = `<p class="text-red-500 text-sm">Error al sugerir: ${e.message}. Revisa la conexión o la sintaxis de f(x).</p>`;
+            } finally {
+                loadingDiv.classList.add('hidden');
+                boton.disabled = false;
+            }
+        }
+
+        
+        /**
+         * 7. HELPERS (Fracciones y Matrices)
          */
         function matrixToHtml(matrix, isVector = false) {
             let html = '<table class="matrix-table">';
             if (isVector) {
                 const flatMatrix = matrix.flat(); 
                 flatMatrix.forEach(val => {
-                    html += `<tr><td>${decimalToFraction(val)}</td></tr>`;
+                    html += `<tr><td>${(typeof val === 'string') ? val : decimalToFraction(val)}</td></tr>`;
                 });
             } else {
                 matrix.forEach(row => {
@@ -590,9 +1431,6 @@
             return html;
         }
 
-        /**
-         * Calcula el Máximo Común Divisor (GCD)
-         */
         function gcd(a, b) {
             a = Math.abs(a);
             b = Math.abs(b);
@@ -605,9 +1443,6 @@
             }
         }
 
-        /**
-         * Convierte un número decimal a su fracción más simple.
-         */
         function decimalToFraction(value, tolerance = 1e-9) {
             if (isNaN(value) || value === null) return "NaN";
             
@@ -641,124 +1476,12 @@
             
             const commonDivisor = gcd(best_n, best_d);
             
-            // Si la mejor fracción es suficientemente buena
             if (best_err < 0.001) { 
                  return `${sign}${best_n / commonDivisor}/${best_d / commonDivisor}`;
             }
 
-            // Si no, devolver el decimal
-            return value.toFixed(5);
-        }
-
-
-        /**
-         * 3. CEREBRO PARA PUNTO FLOTANTE
-         */
-        function calcularFlotante() {
-            const resultadoId = 'resultado-flotante';
-            try {
-                const num = parseFloat(document.getElementById('f-num').value);
-                const bits_exp = parseInt(document.getElementById('f-exp').value);
-                const bits_mant = parseInt(document.getElementById('f-mant').value);
-
-                if (isNaN(num) || isNaN(bits_exp) || isNaN(bits_mant) || bits_exp <= 0 || bits_mant <= 0) {
-                    throw new Error("Valores inválidos. Asegúrate de que todos los campos sean números positivos.");
-                }
-
-                // 1. Signo
-                const signo = (num < 0 || Object.is(num, -0)) ? 1 : 0;
-                const signo_str = (signo === 1) ? "-" : "+";
-                const num_abs = Math.abs(num);
-
-                // 2. Partes entera y fraccionaria
-                let parte_entera = Math.floor(num_abs);
-                let parte_frac = num_abs - parte_entera;
-
-                let bin_entero = parte_entera.toString(2);
-                
-                let bin_frac = "";
-                let temp_frac = parte_frac;
-                for (let i = 0; i < bits_mant + 5; i++) { // +5 bits para redondeo
-                    temp_frac *= 2;
-                    if (temp_frac >= 1) {
-                        bin_frac += "1";
-                        temp_frac -= 1;
-                    } else {
-                        bin_frac += "0";
-                    }
-                    if (temp_frac === 0) break;
-                }
-
-                let html = `<div class="space-y-4">
-                            <p><b>Número:</b> ${num}</p>
-                            <p><b>1. Binario Puro:</b> ${signo_str}${bin_entero}.${bin_frac}...</p>`;
-
-                // 3. Normalización (Forma 1.xxxxx * 2^E)
-                let exponente_real = 0;
-                let mantisa_raw = "";
-
-                if (num_abs === 0) {
-                    exponente_real = -Infinity;
-                    mantisa_raw = "0".repeat(bits_mant + 5);
-                } else if (parte_entera > 0) {
-                    exponente_real = bin_entero.length - 1;
-                    mantisa_raw = bin_entero.substring(1) + bin_frac;
-                } else { // num es 0.xxxx
-                    let first_one = bin_frac.indexOf('1');
-                    if (first_one === -1) { // Caso raro, debería ser 0
-                        exponente_real = -Infinity;
-                        mantisa_raw = "0".repeat(bits_mant + 5);
-                    } else {
-                        exponente_real = -(first_one + 1);
-                        mantisa_raw = bin_frac.substring(first_one + 1);
-                    }
-                }
-                
-                html += `<p><b>2. Normalizado:</b> ${signo_str}1.${mantisa_raw.substring(0, 20)}... x 2^(${exponente_real})</p>`;
-
-                // 4. Exponente con Sesgo (Bias)
-                const bias = (2**(bits_exp - 1)) - 1;
-                let exp_guardado = exponente_real + bias;
-                
-                // (Manejo de underflow/overflow simple)
-                if (num_abs === 0) exp_guardado = 0; // Cero
-                else if (exponente_real < 1 - bias) exp_guardado = 0; // Underflow (denormalizado)
-                else if (exponente_real > bias) exp_guardado = (2**bits_exp) - 1; // Overflow (Infinito)
-                
-                let exp_bin = exp_guardado.toString(2).padStart(bits_exp, '0');
-
-                html += `<p><b>3. Exponente Guardado (con bias ${bias}):</b> ${exponente_real} + ${bias} = ${exp_guardado} ➜ <b>${exp_bin}</b></p>`;
-
-                // 5. Mantisa (con truncado simple)
-                // (Una implementación completa usaría "round to nearest, ties to even")
-                let mantisa_final = mantisa_raw.substring(0, bits_mant).padEnd(bits_mant, '0');
-                
-                html += `<p><b>4. Mantisa Guardada:</b> ${mantisa_final}</p>`;
-
-                // 6. Resultado Final (Las Cajitas!)
-                html += `
-                    <h3 class="text-xl font-semibold pt-4">Representación Final (Como en la foto)</h3>
-                    <div class="flex flex-wrap text-center font-bold text-lg">
-                        <div class="flex flex-col p-2">
-                            <span class="text-sm font-medium">Signo (1)</span>
-                            <span class="p-4 bg-yellow-200 text-yellow-800 border border-yellow-400 rounded-l-md">${signo}</span>
-                        </div>
-                        <div class="flex flex-col p-2">
-                            <span class="text-sm font-medium">Exponente (${bits_exp})</span>
-                            <span class="p-4 bg-green-200 text-green-800 border-t border-b border-green-400">${exp_bin}</span>
-                        </div>
-                        <div class="flex flex-col p-2">
-                            <span class="text-sm font-medium">Mantisa (${bits_mant})</span>
-                            <span class="p-4 bg-blue-200 text-blue-800 border border-blue-400 rounded-r-md">${mantisa_final}</span>
-                        </div>
-                    </div>
-                </div>`;
-                
-                mostrarResultado(resultadoId, html);
-
-            } catch (e) {
-                mostrarError(resultadoId, e.message);
-            }
+            // Si no, devolver el decimal con la precisión de 10
+            return value.toFixed(10);
         }
 
     </script>
